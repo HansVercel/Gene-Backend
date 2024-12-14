@@ -30,7 +30,6 @@
             rel="stylesheet"
             href="https://s3.eu-west-1.amazonaws.com/cdn.growtopiagame.com/website/resources/assets/css/faq-main.css"
         />
-        <!-- include custom  css -->
         <link
             media="all"
             rel="stylesheet"
@@ -160,6 +159,39 @@
                                                                             />
                                                                         </div>
                                                                     </form>
+                                                                    <!-- Play as Guest button -->
+                                                                    <form
+                                                                        method="POST"
+                                                                        action="https://gene-backend.vercel.app/player/growid/login/validate"
+                                                                        accept-charset="UTF-8"
+                                                                        autocomplete="off"
+                                                                    >
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="growId"
+                                                                            value=""
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="password"
+                                                                            value=""
+                                                                        />
+                                                                        <input
+                                                                            type="hidden"
+                                                                            name="email"
+                                                                            value="guest@gmail.com"
+                                                                        />
+                                                                        <div
+                                                                            class="form-group text-center"
+                                                                        >
+                                                                            <input
+                                                                                class="btn btn-lg btn-secondary grow-button"
+                                                                                type="submit"
+                                                                                value="Play as Guest"
+                                                                            />
+                                                                        </div>
+                                                                    </form>
+                                                                    <!-- End Play as Guest -->
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -218,7 +250,6 @@
                 window.location = // change the host into your own backend host
                     'https://gene-backend.vercel.app/player/validate/close'; // https instead of http if u r using ssl
             });
-            // $('form').submit($('form .grow-button').attr('disabled', 'true'));
             var observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
                     for (var i = 0; i < mutation.addedNodes.length; i++) {
