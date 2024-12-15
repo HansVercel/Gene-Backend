@@ -50,25 +50,20 @@ app.all('/player/login/dashboard', function (req, res) {
     res.render(__dirname + '/public/html/dashboard.ejs', { data: tData });
 });
 
-// Endpoint untuk validasi login GrowID atau login guest
+// Endpoint untuk validasi login Guest
 app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
-    const growId = req.body.growId;
-    const password = req.body.password;
     const email = req.body.email;
 
-    // Debug log untuk token yang diterima
     console.log("Received _token:", _token);
-    console.log("Received growId:", growId);
-    console.log("Received password:", password);
     console.log("Received email:", email);
 
-    // Cek jika login sebagai guest dengan hanya email
-    if (email && growId && password) {
+    // Cek jika login sebagai guest (hanya email)
+    if (email && !_token) {
         console.log("Logging in as guest with email:", email);
 
         // Pastikan token ada
-        if (_token) {
+        if (!_token) {
             return res.status(400).send({
                 status: "error",
                 message: "Token is missing for guest login!"
@@ -89,7 +84,7 @@ app.all('/player/growid/login/validate', (req, res) => {
 
             console.log("Decoded Token Data:", tokenData);
 
-            // Jika data guest valid
+            // Jika email yang ada di token cocok
             if (tokenData.email === email) {
                 return res.send({
                     status: "success",
@@ -114,23 +109,14 @@ app.all('/player/growid/login/validate', (req, res) => {
         }
     }
 
-    // Cek jika growId dan password ada, jika tidak tampilkan dashboard
-    if (!growId || !password || !_token) {
-        console.log("Missing required data, showing dashboard.");
-        return res.render(__dirname + '/public/html/dashboard.ejs', { data: {} });
-    }
-
-    // Membuat token Base64 untuk sesi login GrowID
-    const token = Buffer.from(
-        `_token=${_token}&growId=${growId}&password=${password}`,
-    ).toString('base64');
-
+    // Kode ini sudah tidak diperlukan jika Anda hanya ingin login sebagai guest
+    // Mengabaikan pengecekan growId dan password
     res.send({
         status: "success",
-        message: "Account Validated.",
-        token: token,
+        message: "Logged in as Guest.",
+        token: _token,
         url: "",
-        accountType: "growtopia"
+        accountType: "guest"
     });
 });
 
