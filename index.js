@@ -57,21 +57,65 @@ app.all('/player/growid/login/validate', (req, res) => {
     const password = req.body.password;
     const email = req.body.email;
 
+    // Debug log untuk token yang diterima
+    console.log("Received _token:", _token);
+    console.log("Received growId:", growId);
+    console.log("Received password:", password);
+    console.log("Received email:", email);
+
     // Jika login sebagai guest dengan hanya email
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
-        const guestToken = Buffer.from(`_token=${_token}&email=${email}`).toString('base64');
-        return res.send({
-            status: "success",
-            message: "Logged in as Guest.",
-            token: guestToken,
-            url: "",
-            accountType: "guest"
-        });
+
+        // Cek apakah _token ada, jika tidak tampilkan error
+        if (!_token) {
+            return res.status(400).send({
+                status: "error",
+                message: "Token is missing for guest login!"
+            });
+        }
+
+        // Decode token Base64
+        try {
+            const decodedToken = Buffer.from(_token, 'base64').toString('utf8');
+            console.log("Decoded Token:", decodedToken);
+
+            // Ambil data dari token yang didekode
+            const tokenData = decodedToken.split('&').reduce((acc, item) => {
+                const [key, value] = item.split('=');
+                acc[key] = value;
+                return acc;
+            }, {});
+
+            console.log("Decoded Token Data:", tokenData);
+
+            // Jika data guest valid
+            if (tokenData.email === email) {
+                return res.send({
+                    status: "success",
+                    message: "Logged in as Guest.",
+                    token: _token,
+                    url: "",
+                    accountType: "guest"
+                });
+            } else {
+                return res.status(400).send({
+                    status: "error",
+                    message: "Invalid guest login details."
+                });
+            }
+
+        } catch (error) {
+            console.error("Error decoding token:", error);
+            return res.status(400).send({
+                status: "error",
+                message: "Failed to decode the token."
+            });
+        }
     }
 
     // Cek jika growId dan password ada, jika tidak tampilkan dashboard
-    if (!growId || !password || _token) {
+    if (!growId || !password || !_token) {
         console.log("Missing required data, showing dashboard.");
         return res.render(__dirname + '/public/html/dashboard.ejs', { data: {} });
     }
@@ -93,6 +137,9 @@ app.all('/player/growid/login/validate', (req, res) => {
 // Endpoint untuk mengecek token
 app.all('/player/growid/checktoken', (req, res) => {
     const { refreshToken } = req.body;
+
+    // Debug log untuk refreshToken
+    console.log("Received refreshToken:", refreshToken);
 
     // Pastikan refreshToken ada
     if (!refreshToken) {
