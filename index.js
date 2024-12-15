@@ -14,10 +14,8 @@ app.use(compression({
         return compression.filter(req, res);
     }
 }));
-
 app.set('view engine', 'ejs');
 app.set('trust proxy', 1);
-
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header(
@@ -27,31 +25,11 @@ app.use(function (req, res, next) {
     console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url} - ${res.statusCode}`);
     next();
 });
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
-app.all('/player/login/dashboard', function (req, res) {
-    const tData = {};
-    try {
-        const uData = JSON.stringify(req.body).split('"')[1].split('\\n');
-        const uName = uData[0].split('|');
-        const uPass = uData[1].split('|');
-        for (let i = 0; i < uData.length - 1; i++) {
-            const d = uData[i].split('|');
-            tData[d[0]] = d[1];
-        }
-        if (uName[1] && uPass[1]) {
-            res.redirect('/player/growid/login/validate');
-        }
-    } catch (why) {
-        console.log(`Warning: ${why}`);
-    }
-
-    res.render(__dirname + '/public/html/dashboard.ejs', { data: tData });
-});
-
+// Route untuk login guest
 app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
     const growId = req.body.growId;
@@ -61,27 +39,41 @@ app.all('/player/growid/login/validate', (req, res) => {
     // Cek apakah login adalah login guest
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
+
+        // Membuat token untuk login guest
         const token = Buffer.from(
-            `_token=${_token}&email=${email}`,
+            `_token=${encodeURIComponent(_token)}&email=${encodeURIComponent(email)}`,
         ).toString('base64');
-        
+
         return res.send(
             `{"status":"success","message":"Logged in as Guest.","token":"${token}","url":"","accountType":"guest"}`
         );
     }
 
-    // Jika login dengan growId dan password, proses normal
-    const token = Buffer.from(
-        `_token=${_token}&growId=${growId}&password=${password}`,
-    ).toString('base64');
+    // Jika login dengan growId dan password (akun Growtopia)
+    if (growId && password) {
+        console.log("Logging in as Growtopia account with GrowID:", growId);
 
-    res.send(
-        `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`
-    );
+        // Membuat token untuk login dengan akun Growtopia
+        const token = Buffer.from(
+            `_token=${encodeURIComponent(_token)}&growId=${encodeURIComponent(growId)}&password=${encodeURIComponent(password)}`,
+        ).toString('base64');
+
+        return res.send(
+            `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`
+        );
+    }
+
+    // Jika ada data lain atau request tidak valid
+    res.status(400).send({
+        status: "error",
+        message: "Invalid login details."
+    });
 });
 
+// Route untuk cek token
 app.all('/player/growid/checktoken', (req, res) => {
-    const refreshToken = req.body;
+    const refreshToken = req.body.token;
     let data = {
         status: "success",
         message: "Account Validated",
