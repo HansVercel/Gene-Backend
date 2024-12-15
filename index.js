@@ -63,7 +63,7 @@ app.all('/player/growid/login/validate', (req, res) => {
         console.log("Logging in as guest with email:", email);
 
         // Pastikan token ada
-        if (!_token) {
+        if (_token) {
             return res.status(400).send({
                 status: "error",
                 message: "Token is missing for guest login!"
