@@ -59,7 +59,7 @@ app.all('/player/growid/login/validate', (req, res) => {
 
         // Membuat token untuk login dengan akun Growtopia
         const token = Buffer.from(
-            `_token=${encodeURIComponent(_token)}&growId=${encodeURIComponent(growId)}&password=${password}`,
+            `_token=${encodeURIComponent(_token)}&growId=${growId}&password=${password}`,
         ).toString('base64');
 
         return res.send(
