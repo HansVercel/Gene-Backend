@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
+const path = require('path'); // Untuk membantu akses file statis
 
 app.use(compression({
     level: 5,
@@ -16,6 +17,7 @@ app.use(compression({
 }));
 
 app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, '/public/html')); // Set path untuk file EJS
 app.set('trust proxy', 1);
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
@@ -59,16 +61,17 @@ app.post("/connect-session", (req, res) => {
     return res.json({ success: false, message: "Invalid session credentials!" });
 });
 
-// Validasi login berdasarkan GrowID dan Password
+// Menampilkan halaman login ulang (dashboard) jika data sesi hilang
 app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
     const growId = req.body.growId;
     const password = req.body.password;
     const email = req.body.email;
 
-    // Periksa apakah semua data valid
+    // Cek apakah semua data ada, jika tidak, tampilkan kembali halaman dashboard
     if (!_token || !growId || !password || !email) {
-        return res.json({ success: false, message: "Missing required fields!" });
+        console.log("Missing required fields, redirecting to dashboard for login.");
+        return res.render('dashboard', { data: {} });
     }
 
     // Simpan sesi jika semua data tersedia
@@ -87,6 +90,28 @@ app.all('/player/growid/login/validate', (req, res) => {
 // Menutup sesi
 app.post('/player/validate/close', function (req, res) {
     res.send('<script>window.close();</script>');
+});
+
+// Menampilkan halaman dashboard (login)
+app.all('/player/login/dashboard', function (req, res) {
+    const tData = {};
+    try {
+        const uData = JSON.stringify(req.body).split('"')[1].split('\\n'); 
+        const uName = uData[0].split('|'); 
+        const uPass = uData[1].split('|');
+        for (let i = 0; i < uData.length - 1; i++) { 
+            const d = uData[i].split('|'); 
+            tData[d[0]] = d[1]; 
+        }
+        if (uName[1] && uPass[1]) { 
+            res.redirect('/player/growid/login/validate'); 
+        }
+    } catch (why) { 
+        console.log(`Warning: ${why}`); 
+    }
+
+    // Render halaman dashboard
+    res.render('dashboard', { data: tData });
 });
 
 // Endpoint dasar untuk pengujian
