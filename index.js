@@ -3,6 +3,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
+const crypto = require('crypto'); // Import crypto untuk menghasilkan token unik
 
 app.use(compression({
     level: 5,
@@ -31,10 +32,12 @@ app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
 // Endpoint untuk login dan memverifikasi token
 app.all('/player/growid/login/validate', (req, res) => {
-    const _token = req.body._token;
+    const _token = generateToken(req); // Menghasilkan token yang unik untuk setiap sesi
     const growId = req.body.growId;
     const password = req.body.password;
     const email = req.body.email;
+
+    console.log("Received token:", _token);  // Untuk debugging
 
     // Jika email ada dan growId dan password kosong, berarti login guest
     if (email && !growId && !password) {
@@ -70,6 +73,16 @@ app.all('/player/growid/login/validate', (req, res) => {
         message: "Invalid login details."
     });
 });
+
+// Fungsi untuk menghasilkan token yang unik per device/session
+function generateToken(req) {
+    // Menggunakan crypto untuk menghasilkan token yang lebih aman dan unik
+    const hash = crypto.createHmac('sha256', 'your_secret_key') // Ganti 'your_secret_key' dengan kunci rahasia
+        .update(req.ip + req.headers['user-agent'] + Date.now().toString())
+        .digest('hex');
+
+    return hash; // Menghasilkan token hash unik
+}
 
 // Endpoint untuk menampilkan dashboard
 app.all('/player/login/dashboard', function (req, res) {
