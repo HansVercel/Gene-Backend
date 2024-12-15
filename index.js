@@ -71,7 +71,7 @@ app.all('/player/growid/login/validate', (req, res) => {
     }
 
     // Cek jika growId dan password ada, jika tidak tampilkan dashboard
-    if (!growId || !password || !_token) {
+    if (!growId || !password || _token) {
         console.log("Missing required data, showing dashboard.");
         return res.render(__dirname + '/public/html/dashboard.ejs', { data: {} });
     }
