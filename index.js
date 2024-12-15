@@ -69,27 +69,25 @@ app.all('/player/growid/login/validate', (req, res) => {
     const password = req.body.password;
     const email = req.body.email;
 
+    // Simpan sesi di sini
+    if (growId && password) {
+        activeSessions[growId] = { growId, password, email, _token };
+        console.log(`Session saved for GrowID: ${growId}`);
+    }
+
     const token = Buffer.from(
             `_token=${_token}&growId=${growId}&password=${password}&email=${email}`,
         ).toString('base64');
-    /*if ((growId.empty() || password.empty()) && !email.empty()) {
-        token = Buffer.from(
-            `_token=${_token}&growId=${growId}&password=${password}&email=${email}`,
-        ).toString('base64');
-    }
-    else {
-         token = Buffer.from(
-            `_token=${_token}&growId=${growId}&password=${password}&email=${email}`,
-        ).toString('base64');
-    }*/
 
     res.send(
         `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`,
     );
 });
+
 app.post('/player/validate/close', function (req, res) {
     res.send('<script>window.close();</script>');
 });
+
 app.get('/', function (req, res) {
     res.send('Hello World!');
 });
