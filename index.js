@@ -4,7 +4,6 @@ const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
 
-// Middleware untuk compress response
 app.use(compression({
     level: 5,
     threshold: 0,
@@ -16,11 +15,9 @@ app.use(compression({
     }
 }));
 
-// Set view engine dan trust proxy untuk logging
 app.set('view engine', 'ejs');
 app.set('trust proxy', 1);
 
-// Middleware CORS dan logging request
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
@@ -28,11 +25,8 @@ app.use(function (req, res, next) {
     next();
 });
 
-// Middleware untuk parsing body request
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
-
-// Rate limiter
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
 // Endpoint untuk login dan memverifikasi token
@@ -42,7 +36,7 @@ app.all('/player/growid/login/validate', (req, res) => {
     const password = req.body.password;
     const email = req.body.email;
 
-    // Cek apakah login adalah login guest
+    // Jika email ada dan growId dan password kosong, berarti login guest
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
 
