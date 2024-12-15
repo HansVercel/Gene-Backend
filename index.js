@@ -1,19 +1,10 @@
 const express = require('express');
 const app = express();
-const bodyParser = 'body-parser';
-const rateLimiter = 'express-rate-limit';
-const compression = 'compression';
+const bodyParser = require('body-parser');
+const rateLimiter = require('express-rate-limit');
+const compression = require('compression');  // Pastikan import 'compression' dengan benar
 
-app.use(compression({
-    level: 5,
-    threshold: 0,
-    filter: (req, res) => {
-        if (req.headers['x-no-compression']) {
-            return false;
-        }
-        return compression.filter(req, res);
-    }
-}));
+app.use(compression());  // Gunakan kompresi dengan cara yang benar
 
 app.set('view engine', 'ejs');
 app.set('trust proxy', 1);
