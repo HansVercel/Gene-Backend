@@ -55,7 +55,7 @@ app.all('/player/growid/login/validate', (req, res) => {
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
 
-        if (!_token) {
+        if (_token) {
             return res.status(400).send({
                 status: "error",
                 message: "Token is missing for guest login!"
