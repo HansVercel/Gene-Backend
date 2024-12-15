@@ -35,12 +35,12 @@ app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 // Inisialisasi penyimpanan sesi
 let activeSessions = {};
 
-// Rute untuk menyimpan data sesi
+// Rute untuk menyimpan data sesi (tanpa email)
 app.post("/save-session", (req, res) => {
-    const { _token, growId, password, email } = req.body;
+    const { _token, growId, password } = req.body;
 
-    if (_token && growId && password && email) {
-        activeSessions[growId] = { _token, growId, password, email };
+    if (_token && growId && password) {
+        activeSessions[growId] = { _token, growId, password };
         console.log(`Session saved for GrowID: ${growId}`);
         return res.json({ success: true, message: "Session saved!" });
     }
@@ -61,25 +61,24 @@ app.post("/connect-session", (req, res) => {
     return res.json({ success: false, message: "Invalid session credentials!" });
 });
 
-// Menampilkan halaman login ulang (dashboard) jika data sesi hilang
+// Menampilkan halaman login ulang (dashboard) jika growId atau password hilang
 app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
     const growId = req.body.growId;
     const password = req.body.password;
-    const email = req.body.email;
 
-    // Cek apakah semua data ada, jika tidak, tampilkan kembali halaman dashboard
-    if (!_token || !growId || !password || !email) {
-        console.log("Missing required fields, redirecting to dashboard for login.");
+    // Cek apakah growId dan password ada, jika tidak, tampilkan kembali halaman dashboard
+    if (!growId || !password) {
+        console.log("Missing growID or password, redirecting to dashboard for login.");
         return res.render('dashboard', { data: {} });
     }
 
-    // Simpan sesi jika semua data tersedia
-    activeSessions[growId] = { _token, growId, password, email };
+    // Simpan sesi jika growId, password, dan token tersedia
+    activeSessions[growId] = { _token, growId, password };
     console.log(`Session saved for GrowID: ${growId}`);
 
     const token = Buffer.from(
-        `_token=${_token}&growId=${growId}&password=${password}&email=${email}`,
+        `_token=${_token}&growId=${growId}&password=${password}`,
     ).toString('base64');
 
     res.send(
