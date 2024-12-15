@@ -63,11 +63,11 @@ app.all('/player/growid/login/validate', (req, res) => {
     console.log("Received password:", password);
     console.log("Received email:", email);
 
-    // Jika login sebagai guest dengan hanya email
+    // Cek jika login sebagai guest dengan hanya email
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
 
-        // Cek apakah _token ada, jika tidak tampilkan error
+        // Pastikan token ada
         if (!_token) {
             return res.status(400).send({
                 status: "error",
