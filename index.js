@@ -3,8 +3,10 @@ const app = express();
 const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
+const session = require('express-session'); // Import express-session
 const crypto = require('crypto'); // Import crypto untuk menghasilkan token unik
 
+// Middleware untuk kompresi
 app.use(compression({
     level: 5,
     threshold: 0,
@@ -16,8 +18,17 @@ app.use(compression({
     }
 }));
 
+// Set view engine untuk EJS
 app.set('view engine', 'ejs');
 app.set('trust proxy', 1);
+
+// Middleware untuk session
+app.use(session({
+    secret: 'your_secret_key', // Ganti dengan kunci rahasia Anda
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: true } // Jika menggunakan HTTPS, set secure: true
+}));
 
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
@@ -43,10 +54,13 @@ app.all('/player/growid/login/validate', (req, res) => {
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
 
-        // Membuat token untuk login guest
+        // Membuat token untuk login guest tanpa encode email
         const token = Buffer.from(
-            `_token=${encodeURIComponent(_token)}&email=${email}`,  // Tidak encode email
+            `_token=${_token}&email=${email}`,  // Tidak encode email
         ).toString('base64');
+
+        // Simpan token ke session
+        req.session.token = token;  // Simpan token ke dalam sesi
 
         return res.send(
             `{"status":"success","message":"Logged in as Guest.","token":"${token}","url":"","accountType":"guest"}`
@@ -57,10 +71,13 @@ app.all('/player/growid/login/validate', (req, res) => {
     if (growId && password) {
         console.log("Logging in as Growtopia account with GrowID:", growId);
 
-        // Membuat token untuk login dengan akun Growtopia
+        // Membuat token untuk login dengan akun Growtopia tanpa encode email
         const token = Buffer.from(
-            `_token=${encodeURIComponent(_token)}&growId=${growId}&password=${password}`,
+            `_token=${_token}&growId=${growId}&password=${password}`,
         ).toString('base64');
+
+        // Simpan token ke session
+        req.session.token = token;  // Simpan token ke dalam sesi
 
         return res.send(
             `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`
@@ -87,6 +104,16 @@ function generateToken(req) {
 // Endpoint untuk menampilkan dashboard
 app.all('/player/login/dashboard', function (req, res) {
     const tData = {};
+    
+    // Periksa apakah session token ada
+    if (req.session.token) {
+        // Gunakan token yang disimpan dalam sesi
+        console.log("Using session token:", req.session.token);
+        tData.token = req.session.token;
+    } else {
+        console.log("No session token found.");
+    }
+
     try {
         const uData = JSON.stringify(req.body).split('"')[1].split('\\n');
         const uName = uData[0].split('|');
