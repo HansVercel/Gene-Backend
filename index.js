@@ -29,6 +29,29 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
+let activeSessions = {};
+
+// Rute untuk menyimpan data sesi
+app.post("/save-session", (req, res) => {
+    const { growId, password } = req.body;
+
+    if (growId && password) {
+        activeSessions[growId] = { growId, password };
+        return res.json({ success: true, message: "Session saved!" });
+    }
+    return res.json({ success: false, message: "Invalid data!" });
+});
+
+// Rute untuk menghubungkan ke sesi terakhir
+app.post("/connect-session", (req, res) => {
+    const { growId, password } = req.body;
+
+    if (activeSessions[growId] && activeSessions[growId].password === password) {
+        return res.json({ success: true, message: "Connected to the session!" });
+    }
+    return res.json({ success: false, message: "Invalid session credentials!" });
+});
+
 app.all('/player/login/dashboard', function (req, res) {
     const tData = {};
     try {
