@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
 
+// Middleware untuk compress response
 app.use(compression({
     level: 5,
     threshold: 0,
@@ -14,22 +15,27 @@ app.use(compression({
         return compression.filter(req, res);
     }
 }));
+
+// Set view engine dan trust proxy untuk logging
 app.set('view engine', 'ejs');
 app.set('trust proxy', 1);
+
+// Middleware CORS dan logging request
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept',
-    );
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url} - ${res.statusCode}`);
     next();
 });
+
+// Middleware untuk parsing body request
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Rate limiter
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
-// Route untuk login guest
+// Endpoint untuk login dan memverifikasi token
 app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
     const growId = req.body.growId;
@@ -64,10 +70,38 @@ app.all('/player/growid/login/validate', (req, res) => {
         );
     }
 
-    // Tidak perlu error jika data tidak valid, hanya tidak mengirim apa-apa
+    // Jika tidak ada informasi yang valid, kirimkan respons kosong
+    res.send({
+        status: "error",
+        message: "Invalid login details."
+    });
 });
 
-// Route untuk cek token
+// Endpoint untuk menampilkan dashboard
+app.all('/player/login/dashboard', function (req, res) {
+    const tData = {};
+    try {
+        const uData = JSON.stringify(req.body).split('"')[1].split('\\n');
+        const uName = uData[0].split('|');
+        const uPass = uData[1].split('|');
+
+        for (let i = 0; i < uData.length - 1; i++) {
+            const d = uData[i].split('|');
+            tData[d[0]] = d[1];
+        }
+        // Jika username dan password valid, redirect ke halaman validasi
+        if (uName[1] && uPass[1]) {
+            res.redirect('/player/growid/login/validate');
+        }
+    } catch (error) {
+        console.log(`Warning: ${error}`);
+    }
+
+    // Render dashboard jika tidak ada masalah
+    res.render(__dirname + '/public/html/dashboard.ejs', { data: tData });
+});
+
+// Endpoint untuk cek token yang valid
 app.all('/player/growid/checktoken', (req, res) => {
     const refreshToken = req.body.token;
     let data = {
@@ -80,10 +114,12 @@ app.all('/player/growid/checktoken', (req, res) => {
     res.send(data);
 });
 
+// Default route
 app.get('/', function (req, res) {
     res.send('Hello World!');
 });
 
+// Menjalankan server di port 5000
 app.listen(5000, function () {
     console.log('Listening on port 5000');
 });
