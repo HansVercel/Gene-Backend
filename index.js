@@ -45,7 +45,7 @@ app.all('/player/growid/login/validate', (req, res) => {
 
         // Membuat token untuk login guest
         const token = Buffer.from(
-            `_token=${encodeURIComponent(_token)}&email=${encodeURIComponent(email)}`,
+            `_token=${encodeURIComponent(_token)}&email=${email}`,  // Tidak encode email
         ).toString('base64');
 
         return res.send(
