@@ -61,23 +61,35 @@ app.post("/connect-session", (req, res) => {
     return res.json({ success: false, message: "Invalid session credentials!" });
 });
 
-// Menampilkan halaman login ulang (dashboard) jika growId atau password hilang
 app.all('/player/growid/login/validate', (req, res) => {
-    const _token = req.body._token;
-    const growId = req.body.growId;
-    const password = req.body.password;
+    const _token = req.body._token;  // Ambil token dari body permintaan
     const email = req.body.email;
 
-    // Cek jika login sebagai Guest (menggunakan email saja)
-    if (email && !growId && !password) {
+    // Jika login sebagai Guest (menggunakan email saja)
+    if (email && !req.body.growId && !req.body.password) {
+        if (!_token) {
+            return res.status(400).send({ status: "error", message: "Token is missing for guest login!" });
+        }
+
         console.log("Logging in as guest with email:", email);
-        const token = Buffer.from(`_token=${_token}&email=${email}`).toString('base64');
-        return res.send(
-            `{"status":"success","message":"Logged in as Guest.","token":"${token}","url":"","accountType":"guest"}`
-        );
+        
+        // Buat token Base64
+        const token = Buffer.from(`_token=${_token}&email=${email}`, 'utf8').toString('base64');
+
+        return res.send({
+            status: "success",
+            message: "Logged in as Guest.",
+            token: token,
+            url: "",
+            accountType: "guest"
+        });
     }
 
-    // Cek apakah growId dan password ada, jika tidak, tampilkan kembali halaman dashboard
+    // Proses login reguler dengan GrowID dan password
+    const growId = req.body.growId;
+    const password = req.body.password;
+
+    // Jika growId atau password hilang, kembali ke dashboard untuk login ulang
     if (!growId || !password) {
         console.log("Missing growID or password, redirecting to dashboard for login.");
         return res.render('dashboard', { data: {} });
@@ -87,13 +99,16 @@ app.all('/player/growid/login/validate', (req, res) => {
     activeSessions[growId] = { _token, growId, password };
     console.log(`Session saved for GrowID: ${growId}`);
 
-    const token = Buffer.from(
-        `_token=${_token}&growId=${growId}&password=${password}`,
-    ).toString('base64');
+    // Encode token GrowID
+    const token = Buffer.from(`_token=${_token}&growId=${growId}&password=${password}`, 'utf8').toString('base64');
 
-    res.send(
-        `{"status":"success","message":"Account Validated.","token":"${token}","url":"","accountType":"growtopia"}`,
-    );
+    return res.send({
+        status: "success",
+        message: "Account Validated.",
+        token: token,
+        url: "",
+        accountType: "growtopia"
+    });
 });
 
 // Menutup sesi
