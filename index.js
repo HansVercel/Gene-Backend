@@ -64,11 +64,7 @@ app.all('/player/growid/login/validate', (req, res) => {
         );
     }
 
-    // Jika ada data lain atau request tidak valid
-    res.status(400).send({
-        status: "error",
-        message: "Invalid login details."
-    });
+    // Tidak perlu error jika data tidak valid, hanya tidak mengirim apa-apa
 });
 
 // Route untuk cek token
