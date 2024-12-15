@@ -57,7 +57,7 @@ app.all('/player/growid/login/validate', (req, res) => {
     const password = req.body.password;
     const email = req.body.email;
 
-    // Cek jika login sebagai guest dengan email
+    // Jika login sebagai guest dengan hanya email
     if (email && !growId && !password) {
         console.log("Logging in as guest with email:", email);
         const guestToken = Buffer.from(`_token=${_token}&email=${email}`).toString('base64');
@@ -70,12 +70,10 @@ app.all('/player/growid/login/validate', (req, res) => {
         });
     }
 
-    // Jika login menggunakan GrowID
-    if (!_token || !growId || !password) {
-        return res.status(400).send({
-            status: "error",
-            message: "Missing required fields (_token, growId, password)"
-        });
+    // Cek jika growId dan password ada, jika tidak tampilkan dashboard
+    if (!growId || !password || !_token) {
+        console.log("Missing required data, showing dashboard.");
+        return res.render(__dirname + '/public/html/dashboard.ejs', { data: {} });
     }
 
     // Membuat token Base64 untuk sesi login GrowID
