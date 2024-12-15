@@ -58,7 +58,7 @@ app.all('/player/growid/checktoken', (req, res) => {
     let data = {
         status: "success",
         message: "Account Validated",
-        token = refreshToken,
+        token: refreshToken,
         url: "",
         accountType: "growtopia"
     };
