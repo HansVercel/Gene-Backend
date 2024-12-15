@@ -3,7 +3,6 @@ const app = express();
 const bodyParser = require('body-parser');
 const rateLimiter = require('express-rate-limit');
 const compression = require('compression');
-const path = require('path'); // Untuk membantu akses file statis
 
 app.use(compression({
     level: 5,
@@ -17,106 +16,20 @@ app.use(compression({
 }));
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, '/public/html')); // Set path untuk file EJS
 app.set('trust proxy', 1);
+
 app.use(function (req, res, next) {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header(
-        'Access-Control-Allow-Headers',
-        'Origin, X-Requested-With, Content-Type, Accept',
-    );
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
     console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url} - ${res.statusCode}`);
     next();
 });
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(rateLimiter({ windowMs: 15 * 60 * 1000, max: 100, headers: true }));
 
-// Inisialisasi penyimpanan sesi
-let activeSessions = {};
-
-// Rute untuk menyimpan data sesi (tanpa email)
-app.post("/save-session", (req, res) => {
-    const { _token, growId, password } = req.body;
-
-    if (_token && growId && password) {
-        activeSessions[growId] = { _token, growId, password };
-        console.log(`Session saved for GrowID: ${growId}`);
-        return res.json({ success: true, message: "Session saved!" });
-    }
-    return res.json({ success: false, message: "Invalid data!" });
-});
-
-// Rute untuk menghubungkan ke sesi terakhir
-app.post("/connect-session", (req, res) => {
-    const { growId, password } = req.body;
-
-    if (activeSessions[growId] && activeSessions[growId].password === password) {
-        return res.json({
-            success: true,
-            message: "Connected to the session!",
-            sessionData: activeSessions[growId]
-        });
-    }
-    return res.json({ success: false, message: "Invalid session credentials!" });
-});
-
-app.all('/player/growid/login/validate', (req, res) => {
-    const _token = req.body._token;  // Ambil token dari body permintaan
-    const email = req.body.email;
-
-    // Jika login sebagai Guest (menggunakan email saja)
-    if (email && !req.body.growId && !req.body.password) {
-        if (!_token) {
-            return res.status(400).send({ status: "error", message: "Token is missing for guest login!" });
-        }
-
-        console.log("Logging in as guest with email:", email);
-        
-        // Buat token Base64
-        const token = Buffer.from(`_token=${_token}&email=${email}`, 'utf8').toString('base64');
-
-        return res.send({
-            status: "success",
-            message: "Logged in as Guest.",
-            token: token,
-            url: "",
-            accountType: "guest"
-        });
-    }
-
-    // Proses login reguler dengan GrowID dan password
-    const growId = req.body.growId;
-    const password = req.body.password;
-
-    // Jika growId atau password hilang, kembali ke dashboard untuk login ulang
-    if (!growId || !password) {
-        console.log("Missing growID or password, redirecting to dashboard for login.");
-        return res.render('dashboard', { data: {} });
-    }
-
-    // Simpan sesi jika growId, password, dan token tersedia
-    activeSessions[growId] = { _token, growId, password };
-    console.log(`Session saved for GrowID: ${growId}`);
-
-    // Encode token GrowID
-    const token = Buffer.from(`_token=${_token}&growId=${growId}&password=${password}`, 'utf8').toString('base64');
-
-    return res.send({
-        status: "success",
-        message: "Account Validated.",
-        token: token,
-        url: "",
-        accountType: "growtopia"
-    });
-});
-
-// Menutup sesi
-app.post('/player/validate/close', function (req, res) {
-    res.send('<script>window.close();</script>');
-});
-
-// Menampilkan halaman dashboard (login)
+// Endpoint untuk menampilkan dashboard login
 app.all('/player/login/dashboard', function (req, res) {
     const tData = {};
     try {
@@ -134,16 +47,80 @@ app.all('/player/login/dashboard', function (req, res) {
         console.log(`Warning: ${why}`); 
     }
 
-    // Render halaman dashboard
-    res.render('dashboard', { data: tData });
+    res.render(__dirname + '/public/html/dashboard.ejs', { data: tData });
 });
 
-// Endpoint dasar untuk pengujian
+// Endpoint untuk validasi login GrowID atau login guest
+app.all('/player/growid/login/validate', (req, res) => {
+    const _token = req.body._token;
+    const growId = req.body.growId;
+    const password = req.body.password;
+    const email = req.body.email;
+
+    // Cek jika login sebagai guest dengan email
+    if (email && !growId && !password) {
+        console.log("Logging in as guest with email:", email);
+        const guestToken = Buffer.from(`_token=${_token}&email=${email}`).toString('base64');
+        return res.send({
+            status: "success",
+            message: "Logged in as Guest.",
+            token: guestToken,
+            url: "",
+            accountType: "guest"
+        });
+    }
+
+    // Jika login menggunakan GrowID
+    if (!_token || !growId || !password) {
+        return res.status(400).send({
+            status: "error",
+            message: "Missing required fields (_token, growId, password)"
+        });
+    }
+
+    // Membuat token Base64 untuk sesi login GrowID
+    const token = Buffer.from(
+        `_token=${_token}&growId=${growId}&password=${password}`,
+    ).toString('base64');
+
+    res.send({
+        status: "success",
+        message: "Account Validated.",
+        token: token,
+        url: "",
+        accountType: "growtopia"
+    });
+});
+
+// Endpoint untuk mengecek token
+app.all('/player/growid/checktoken', (req, res) => {
+    const { refreshToken } = req.body;
+
+    // Pastikan refreshToken ada
+    if (!refreshToken) {
+        return res.status(400).send({
+            status: "error",
+            message: "Token is missing!"
+        });
+    }
+
+    let data = {
+        status: "success",
+        message: "Account Validated",
+        token: refreshToken,
+        url: "",
+        accountType: "growtopia"
+    };
+
+    res.send(data);
+});
+
+// Endpoint dasar
 app.get('/', function (req, res) {
     res.send('Hello World!');
 });
 
-// Jalankan server pada port 5000
+// Menjalankan server pada port 5000
 app.listen(5000, function () {
     console.log('Listening on port 5000');
 });
