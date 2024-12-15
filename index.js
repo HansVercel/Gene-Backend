@@ -66,6 +66,16 @@ app.all('/player/growid/login/validate', (req, res) => {
     const _token = req.body._token;
     const growId = req.body.growId;
     const password = req.body.password;
+    const email = req.body.email;
+
+    // Cek jika login sebagai Guest (menggunakan email saja)
+    if (email && !growId && !password) {
+        console.log("Logging in as guest with email:", email);
+        const token = Buffer.from(`_token=${_token}&email=${email}`).toString('base64');
+        return res.send(
+            `{"status":"success","message":"Logged in as Guest.","token":"${token}","url":"","accountType":"guest"}`
+        );
+    }
 
     // Cek apakah growId dan password ada, jika tidak, tampilkan kembali halaman dashboard
     if (!growId || !password) {
